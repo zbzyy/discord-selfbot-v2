@@ -13,7 +13,7 @@
  */
 
 import { Orchestrator } from './orchestrator.js';
-import { checkForUpdates } from './utils/updater.js';
+
 
 process.removeAllListeners('warning');
 process.on('warning', (warning) => {
@@ -22,7 +22,7 @@ process.on('warning', (warning) => {
 });
 
 async function main() {
-    await checkForUpdates();
+
     const orchestrator = new Orchestrator();
     await orchestrator.start();
 }

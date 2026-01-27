@@ -320,11 +320,16 @@ export class Orchestrator {
     async _checkUpdate() {
         try {
             const response = await fetch('https://raw.githubusercontent.com/zbzyy/discord-selfbot-v2/master/package.json');
-            if (!response.ok) return;
+            if (!response.ok) {
+                console.log(`[DEBUG] Update Check Failed: ${response.status} ${response.statusText}`);
+                return;
+            }
 
             const remotePkg = await response.json();
             const currentVersion = pkg.version;
             const remoteVersion = remotePkg.version;
+
+            console.log(`[DEBUG] Update Check: Local=${currentVersion}, Remote=${remoteVersion}`);
 
             if (remoteVersion !== currentVersion) {
                 console.log('');
@@ -361,6 +366,7 @@ export class Orchestrator {
         } catch (error) {
             // Silently fail on network errors during update check
             this.logger.debug('Failed to check for updates', error);
+            console.log('[DEBUG] Update check failed:', error);
         }
     }
 

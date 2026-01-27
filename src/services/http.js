@@ -124,7 +124,6 @@ export async function downloadFile(url, savePath, options = {}) {
                 try {
                     await unlink(savePath);
                 } catch {
-                    // Ignore unlink errors
                 }
                 reject(error);
             };
