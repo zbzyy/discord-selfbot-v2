@@ -15,23 +15,22 @@ const execAsync = promisify(exec);
  */
 export async function pullUpdates() {
     try {
-        const { stdout, stderr } = await execAsync('git pull');
+        console.log('[Updater] Fetching origin...');
+        await execAsync('git fetch origin');
 
-        console.log('[Updater] Git pull output:', stdout);
-
-        if (stdout.includes('Already up to date')) {
+        const { stdout: status } = await execAsync('git status -uno');
+        if (status.includes('Your branch is up to date')) {
+            console.log('[Updater] Branch is already up to date.');
             return 'NO_CHANGES';
         }
 
-        if (stderr && !stderr.includes('Array')) { // Basic filter, 'Already up to date' sometimes appears in stderr too depending on git version/config? Usually stdout.
-            // git pull output usually goes to stdout, fetch info goes to stderr.
-            // We can assume success if no error thrown by execAsync, unless it's "Already up to date"
-        }
+        console.log('[Updater] Resetting to origin/master...');
+        await execAsync('git reset --hard origin/master');
 
         return 'UPDATED';
     } catch (error) {
-        console.error('[Updater] Git pull failed:', error);
-        return 'ERROR';
+        console.error('[Updater] Update failed:', error);
+        return 'FAILED';
     }
 }
 
