@@ -15,7 +15,6 @@ const execAsync = promisify(exec);
  */
 export async function pullUpdates() {
     try {
-        console.log('[Updater] Fetching origin...');
         await execAsync('git fetch origin');
 
         const { stdout: status } = await execAsync('git status -uno');

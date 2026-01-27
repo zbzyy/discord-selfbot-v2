@@ -67,6 +67,10 @@ function padText(text, width) {
 /**
  * Prints the startup banner.
  */
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const pkg = require('../../package.json');
+
 export function printBanner() {
     const p1 = chalk.hex('#7C3AED'); // Deep purple
     const p2 = chalk.hex('#A855F7'); // Purple
@@ -75,7 +79,7 @@ export function printBanner() {
 
     console.log('');
     console.log('');
-    console.log(BRAND.dim('    automation suite') + BRAND.muted(' · ') + BRAND.dim('v2.0.0'));
+    console.log(BRAND.dim('    automation suite') + BRAND.muted(' · ') + BRAND.dim(`v${pkg.version}`));
     console.log('');
 }
 

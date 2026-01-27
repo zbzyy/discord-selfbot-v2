@@ -231,6 +231,8 @@ export class Orchestrator {
             // Get git commit hash
             const commitHash = await getCommitHash();
 
+            console.log(BRAND.dim(`  Commit: ${commitHash}`));
+
             // Send webhook notification with both bot tags and hash
             await this.webhook.notifyOnline(
                 this.selfBotClient.user?.tag,
@@ -328,7 +330,6 @@ export class Orchestrator {
                 console.log('');
                 console.log(BRAND.dim('  ' + '─'.repeat(4) + ' ') + BRAND.accent.bold('Update Available') + BRAND.dim(' ' + '─'.repeat(38)));
                 console.log(`  ${BRAND.accent('!')}  Current: ${BRAND.dim(currentVersion)}  ${BRAND.muted('→')}  Latest: ${BRAND.success(remoteVersion)}`);
-                console.log(`  ${BRAND.accent('!')}  Run ${BRAND.primary('git pull')} to update`);
                 console.log('');
 
                 // Send webhook notification
