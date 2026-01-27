@@ -1,0 +1,32 @@
+# Environment files (contain secrets)
+.env
+.env.local
+.env.*.local
+
+# Config files with tokens (legacy)
+config/config.json
+
+# Dependencies
+node_modules/
+
+# Runtime logs and data
+intel_logs/
+media_archive/
+exports/
+downloads/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Backup files
+*.backup
+*.bak
+
+# Logs
+*.log
+npm-debug.log*
