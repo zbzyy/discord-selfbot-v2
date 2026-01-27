@@ -106,6 +106,8 @@ export const config = Object.freeze({
     username: process.env.USERNAME || '',
 
     // Feature flags
+    autoUpdate: parseBooleanEnv(process.env.AUTO_UPDATE, true),
+    autoUpdateNotifications: parseBooleanEnv(process.env.AUTO_UPDATE_NOTIFICATIONS, true),
     watchKeywords: parseArrayEnv(
         process.env.WATCH_KEYWORDS,
         ['password', 'secret', 'admin', 'urgent']
