@@ -14,7 +14,7 @@ import { Routes } from 'discord-api-types/v9';
 
 import { config } from './config/index.js';
 import { getLogger, initLogger } from './logger/index.js';
-import { printBanner, printSection, printStatus, printReadyBox, printSuccess, printError, printInfo } from './logger/ui.js';
+import { printBanner, printSection, printStatus, printReadyBox, printSuccess, printError, printInfo, BRAND } from './logger/ui.js';
 import { initDiscordService } from './services/discord.js';
 import { getWebhookService } from './services/webhook.js';
 import { getCommandRegistry } from './commands/registry.js';
@@ -38,6 +38,15 @@ import {
     handleNukeServer,
     handlePost,
 } from './commands/handlers/index.js';
+
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const pkg = require('../package.json');
+
+
+
+import { pullUpdates, restartProcess } from './utils/updater.js';
+import { EmbedColors } from './services/webhook.js';
 
 /**
  * Main Orchestrator class that manages both Discord clients.
@@ -299,12 +308,69 @@ export class Orchestrator {
     }
 
     /**
+     * Checks for updates from the GitHub repository.
+     * @private
+     */
+    async _checkUpdate() {
+        try {
+            const response = await fetch('https://raw.githubusercontent.com/zbzyy/discord-selfbot-v2/master/package.json');
+            if (!response.ok) return;
+
+            const remotePkg = await response.json();
+            const currentVersion = pkg.version;
+            const remoteVersion = remotePkg.version;
+
+            if (remoteVersion !== currentVersion) {
+                console.log('');
+                console.log(BRAND.dim('  ' + '─'.repeat(4) + ' ') + BRAND.accent.bold('Update Available') + BRAND.dim(' ' + '─'.repeat(38)));
+                console.log(`  ${BRAND.accent('!')}  Current: ${BRAND.dim(currentVersion)}  ${BRAND.muted('→')}  Latest: ${BRAND.success(remoteVersion)}`);
+                console.log(`  ${BRAND.accent('!')}  Run ${BRAND.primary('git pull')} to update`);
+                console.log('');
+
+                // Send webhook notification
+                await this.webhook.notifyUpdate(currentVersion, remoteVersion).catch(() => { });
+
+                // Perform Auto-Update
+                console.log(BRAND.dim('  ' + '─'.repeat(4) + ' ') + BRAND.accent.bold('Auto-Updating...') + BRAND.dim(' ' + '─'.repeat(40)));
+                await this.webhook.notifyStatus('Update Started', 'Pulling latest changes from repository...', EmbedColors.INFO).catch(() => { });
+
+                const status = await pullUpdates();
+
+                if (status === 'UPDATED') {
+                    console.log(`  ${BRAND.success('✓')} Update successful. Restarting...`);
+                    await this.webhook.notifyStatus('Update Complete', 'Update successful! Restarting application...', EmbedColors.SUCCESS).catch(() => { });
+
+                    // Allow time for webhook to send
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    restartProcess();
+                } else if (status === 'NO_CHANGES') {
+                    console.log(`  ${BRAND.warning('!')} Git reported no changes (Already up to date).`);
+                    console.log(`  ${BRAND.muted('info')} Your local version might be manually modified.`);
+                    await this.webhook.notifyStatus('Update Skipped', 'Git reported no changes. Continuing startup with current version.', EmbedColors.WARNING).catch(() => { });
+                    // Do not restart, continue startup
+                } else {
+                    console.log(`  ${BRAND.error('✗')} Update failed.`);
+                    await this.webhook.notifyStatus('Update Failed', 'Failed to pull updates. Please check console or update manually.', EmbedColors.ERROR).catch(() => { });
+                }
+            }
+        } catch (error) {
+            // Silently fail on network errors during update check
+            this.logger.debug('Failed to check for updates', error);
+        }
+    }
+
+    /**
      * Starts the orchestrator and both clients.
      * @returns {Promise<void>}
      */
     async start() {
         // Print banner
         printBanner();
+        console.log(BRAND.accent('  ★  Verification Success: Received v2.0.1 Update from GitHub!'));
+        console.log('');
+
+        // Check for updates
+        await this._checkUpdate();
 
         // Print startup section
         printSection('Initializing');

@@ -243,6 +243,40 @@ export class WebhookService {
 
         return success;
     }
+
+    /**
+     * Sends an update available notification.
+     * @param {string} currentVersion - Current version
+     * @param {string} newVersion - New version available
+     * @returns {Promise<boolean>} True if sent
+     */
+    async notifyUpdate(currentVersion, newVersion) {
+        return this.send(createEmbed({
+            title: 'Update Available',
+            description: `A new version of the automation suite is available!`,
+            color: EmbedColors.WARNING,
+            fields: [
+                { name: 'Current Version', value: `\`${currentVersion}\``, inline: true },
+                { name: 'New Version', value: `\`${newVersion}\``, inline: true },
+                { name: 'Update Action', value: 'Run `git pull` in your terminal to update.', inline: false }
+            ]
+        }), { username: "System Updater" });
+    }
+
+    /**
+     * Sends a status notification.
+     * @param {string} title - message title
+     * @param {string} message - Status message
+     * @param {string} [color] - Embed color (default: INFO)
+     * @returns {Promise<boolean>} True if sent
+     */
+    async notifyStatus(title, message, color = EmbedColors.INFO) {
+        return this.send(createEmbed({
+            title: title,
+            description: message,
+            color: color,
+        }), { username: "System Updater" });
+    }
 }
 
 // Singleton instance
