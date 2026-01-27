@@ -55,8 +55,12 @@ export function restartProcess() {
  */
 export async function getCommitHash() {
     try {
-        const { stdout } = await execAsync('git rev-parse --short HEAD');
-        return stdout.trim();
+        // Use ls-remote to get the head commit without fetching if possible,
+        // or fetch first then rev-parse if ls-remote is too slow/blocked.
+        // ls-remote is cleaner for "checking" state.
+        const { stdout } = await execAsync('git ls-remote origin master');
+        // Output format: <hash>\trefs/heads/master
+        return stdout.split('\t')[0].trim();
     } catch (error) {
         return null;
     }
