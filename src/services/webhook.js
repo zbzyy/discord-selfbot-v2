@@ -222,7 +222,7 @@ export class WebhookService {
      * @param {string} [commandBotTag] - Command bot user tag
      * @returns {Promise<boolean>} True if sent
      */
-    async notifyOnline(selfBotTag, commandBotTag = null) {
+    async notifyOnline(selfBotTag, commandBotTag = null, commitHash = null) {
         if (!selfBotTag) return false;
 
         let description = `\`${selfBotTag}\` is now online`;
@@ -230,10 +230,20 @@ export class WebhookService {
             description = `\`${selfBotTag}\` and \`${commandBotTag}\` are now online`;
         }
 
+        const fields = [];
+        if (commitHash) {
+            fields.push({
+                name: 'Current Version',
+                value: `[\`${commitHash}\`](https://github.com/zbzyy/discord-selfbot-v2/commit/${commitHash})`,
+                inline: false
+            });
+        }
+
         const success = await this.send(createEmbed({
             title: 'Bot Online',
             description,
             color: EmbedColors.BLURPLE,
+            fields,
             footer: {},
         }), { username: "auth" });
 

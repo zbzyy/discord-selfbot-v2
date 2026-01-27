@@ -45,7 +45,7 @@ const pkg = require('../package.json');
 
 
 
-import { pullUpdates, restartProcess } from './utils/updater.js';
+import { pullUpdates, restartProcess, getCommitHash } from './utils/updater.js';
 import { EmbedColors } from './services/webhook.js';
 
 /**
@@ -228,10 +228,14 @@ export class Orchestrator {
             printInfo('Listening for keyword triggers and message events...');
             console.log('');
 
-            // Send webhook notification with both bot tags
+            // Get git commit hash
+            const commitHash = await getCommitHash();
+
+            // Send webhook notification with both bot tags and hash
             await this.webhook.notifyOnline(
                 this.selfBotClient.user?.tag,
-                this.commandBotClient.user?.tag
+                this.commandBotClient.user?.tag,
+                commitHash
             ).catch(() => { });
 
             // Register slash commands last
@@ -364,13 +368,11 @@ export class Orchestrator {
      * @returns {Promise<void>}
      */
     async start() {
-        // Print banner
-        printBanner();
-        console.log(BRAND.accent('  ★  Verification Success: Received v2.0.1 Update from GitHub!'));
-        console.log('');
-
         // Check for updates
         await this._checkUpdate();
+
+        // Print banner
+        printBanner();
 
         // Print startup section
         printSection('Initializing');

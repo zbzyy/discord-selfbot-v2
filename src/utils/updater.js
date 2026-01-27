@@ -50,3 +50,16 @@ export function restartProcess() {
     child.unref();
     process.exit(0);
 }
+
+/**
+ * Gets the current short git commit hash.
+ * @returns {Promise<string|null>} Short hash or null if failed
+ */
+export async function getCommitHash() {
+    try {
+        const { stdout } = await execAsync('git rev-parse --short HEAD');
+        return stdout.trim();
+    } catch (error) {
+        return null;
+    }
+}
