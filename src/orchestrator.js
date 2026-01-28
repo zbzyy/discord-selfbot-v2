@@ -23,6 +23,7 @@ import { createMessageEventHandlers } from './events/message.js';
 import { createPresenceEventHandlers } from './events/presence.js';
 import { delay } from './utils/delay.js';
 import { ensureDir } from './utils/file.js';
+import { isNewerVersion } from './utils/version.js';
 
 // Import all command handlers
 import {
@@ -335,7 +336,7 @@ export class Orchestrator {
 
             console.log(`[DEBUG] Update Check: Local=${currentVersion}, Remote=${remoteVersion}`);
 
-            if (remoteVersion !== currentVersion) {
+            if (isNewerVersion(remoteVersion, currentVersion)) {
                 console.log('');
                 console.log(BRAND.dim('  ' + '─'.repeat(4) + ' ') + BRAND.accent.bold('Update Available') + BRAND.dim(' ' + '─'.repeat(38)));
                 console.log(`  ${BRAND.accent('!')}  Current: ${BRAND.dim(currentVersion)}  ${BRAND.muted('→')}  Latest: ${BRAND.success(remoteVersion)}`);
@@ -435,7 +436,7 @@ export class Orchestrator {
 
                         // Restart
                         restartProcess();
-                        return;
+                        return true;
                     } catch (error) {
                         console.log(`  ${BRAND.error('✗')} Force reset failed.`);
                     }
@@ -490,6 +491,7 @@ export class Orchestrator {
 
                     // Restart the process
                     restartProcess();
+                    return true;
                 } else if (status === 'ERROR') {
                     console.log(`  ${BRAND.error('✗')} Update failed.`);
 
@@ -531,7 +533,7 @@ export class Orchestrator {
      */
     async start() {
         // Check for updates
-        await this._checkUpdate();
+        if (await this._checkUpdate()) return;
 
         // Print banner
         printBanner();

@@ -116,22 +116,18 @@ export function restartProcess() {
         const { spawn } = require('child_process');
         const args = process.argv.slice(1);
 
-        // Spawn new process
+        // Spawn new process attached to current stdio
         const child = spawn(process.execPath, args, {
-            detached: true,
-            stdio: 'ignore',
+            stdio: 'inherit',
             cwd: process.cwd()
         });
 
-        // Fully detach
-        child.unref();
+        console.log('[Updater] New process started...');
 
-        console.log('[Updater] New process started, exiting current process...');
-
-        // Give it a moment to start, then exit
-        setTimeout(() => {
-            process.exit(0);
-        }, 1000);
+        // Wait for child to exit, then exit this process with same code
+        child.on('close', (code) => {
+            process.exit(code || 0);
+        });
 
     } catch (err) {
         console.error('[Updater] Failed to restart:', err);
