@@ -317,7 +317,13 @@ export class Orchestrator {
      */
     async _checkUpdate() {
         try {
-            const response = await fetch('https://raw.githubusercontent.com/zbzyy/discord-selfbot-v2/master/package.json');
+            const response = await fetch('https://raw.githubusercontent.com/zbzyy/discord-selfbot-v2/master/package.json', {
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                },
+                cache: 'no-store'
+            });
             if (!response.ok) {
                 console.log(`[DEBUG] Update Check Failed: ${response.status} ${response.statusText}`);
                 return;
