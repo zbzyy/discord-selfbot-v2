@@ -102,6 +102,9 @@ export async function pullUpdates() {
     }
 }
 
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+
 /**
  * Restarts the current Node.js process.
  * Uses process.execPath to restart with the same Node version.
@@ -109,53 +112,29 @@ export async function pullUpdates() {
 export function restartProcess() {
     console.log('[Updater] Restarting process...');
 
-    // Get the original command line arguments
-    const args = process.argv.slice(1);
+    try {
+        const { spawn } = require('child_process');
+        const args = process.argv.slice(1);
 
-    if (process.platform === 'win32') {
-        // Windows: Create a temporary batch file to restart
-        import('fs').then(fs => {
-            import('path').then(path => {
-                const batchContent = `@echo off
-timeout /t 2 /nobreak >nul
-cd /d "${process.cwd()}"
-"${process.execPath}" ${args.map(arg => `"${arg}"`).join(' ')}
-`;
-                const batchPath = path.join(process.cwd(), 'restart.bat');
-                fs.writeFileSync(batchPath, batchContent);
-
-                import('child_process').then(({ exec }) => {
-                    exec(`start /min cmd /c "${batchPath}"`, {
-                        windowsHide: true
-                    });
-
-                    // Exit immediately
-                    setTimeout(() => {
-                        process.exit(0);
-                    }, 100);
-                });
-            });
-        }).catch(err => {
-            console.error('[Updater] Failed to restart:', err);
-            process.exit(1);
+        // Spawn new process
+        const child = spawn(process.execPath, args, {
+            detached: true,
+            stdio: 'ignore',
+            cwd: process.cwd()
         });
-    } else {
-        // Unix/Linux
-        import('child_process').then(({ spawn }) => {
-            const child = spawn(process.execPath, args, {
-                detached: true,
-                stdio: 'ignore',
-                shell: false
-            });
 
-            child.unref();
+        // Fully detach
+        child.unref();
 
-            setTimeout(() => {
-                process.exit(0);
-            }, 500);
-        }).catch(err => {
-            console.error('[Updater] Failed to restart:', err);
-            process.exit(1);
-        });
+        console.log('[Updater] New process started, exiting current process...');
+
+        // Give it a moment to start, then exit
+        setTimeout(() => {
+            process.exit(0);
+        }, 1000);
+
+    } catch (err) {
+        console.error('[Updater] Failed to restart:', err);
+        process.exit(1);
     }
 }
