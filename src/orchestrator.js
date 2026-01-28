@@ -420,7 +420,7 @@ export class Orchestrator {
                     await new Promise(resolve => setTimeout(resolve, 2000));
 
                     // Restart the process
-                    await restartProcess();
+                    restartProcess();
                 } else if (status === 'NO_CHANGES') {
                     console.log(`  ${BRAND.warning('!')} Git reported no changes (Already up to date).`);
                     console.log(`  ${BRAND.muted('info')} Your local version might be manually modified.`);
