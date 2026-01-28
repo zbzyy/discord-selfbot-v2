@@ -28,12 +28,10 @@ export async function handleAuditorStats(interaction) {
 
     const messagesToAnalyze = config.maxScrapeLimit;
 
-    // Data structures for analysis
     const messageCounts = new Map();
     const hourCounts = new Array(24).fill(0);
     const dayCounts = new Array(7).fill(0);
 
-    // Get DM channels
     const dmChannels = discord.getDMChannels(CHANNEL_TYPE_DM, CHANNEL_TYPE_GROUP_DM);
 
     logger.info(`Analyzing activity across ${dmChannels.length} DM channels`);
@@ -41,7 +39,6 @@ export async function handleAuditorStats(interaction) {
     let totalMessagesChecked = 0;
     const selfUserId = discord.getSelfUserId();
 
-    // Analyze each channel
     for (const channel of dmChannels) {
         const recipient = channel.recipient?.tag || channel.name || 'Group Chat';
         const recipientId = channel.recipient?.id;
@@ -55,22 +52,18 @@ export async function handleAuditorStats(interaction) {
         totalMessagesChecked += messages.length;
 
         for (const msg of messages) {
-            // Skip own messages
             if (msg.author.id === selfUserId) continue;
 
-            // Count messages by partner
             if (recipientId) {
                 messageCounts.set(recipient, (messageCounts.get(recipient) || 0) + 1);
             }
 
-            // Time analysis
             const date = dayjs(msg.createdTimestamp);
             hourCounts[date.hour()]++;
             dayCounts[date.day()]++;
         }
     }
 
-    // Sort and get top 5 partners
     const sortedPartners = Array.from(messageCounts.entries())
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5);
@@ -79,7 +72,6 @@ export async function handleAuditorStats(interaction) {
         .map(([tag, count], index) => `${index + 1}. **${tag}**: ${count} messages`)
         .join('\n') || 'No data available';
 
-    // Find most active times
     const mostActiveHour = hourCounts.indexOf(Math.max(...hourCounts));
     const mostActiveDayIndex = dayCounts.indexOf(Math.max(...dayCounts));
 
