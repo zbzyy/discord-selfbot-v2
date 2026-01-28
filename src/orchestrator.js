@@ -338,22 +338,22 @@ export class Orchestrator {
 
                 // Send update found notification
                 await this.webhook.send([{
-                    title: 'update available',
+                    title: 'Update available',
                     description: 'A new version has been detected',
                     color: EmbedColors.INFO,
                     fields: [
                         {
-                            name: 'current version',
+                            name: 'Current version',
                             value: `\`${currentVersion}\``,
                             inline: true
                         },
                         {
-                            name: 'new version',
+                            name: 'New version',
                             value: `\`${remoteVersion}\``,
                             inline: true
                         },
                         {
-                            name: 'current commit',
+                            name: 'Current commit',
                             value: `[\`${oldCommitHash}\`](https://github.com/zbzyy/discord-selfbot-v2/commit/${oldFullHash})`,
                             inline: false
                         }
@@ -366,12 +366,9 @@ export class Orchestrator {
                 // Perform the update
                 const status = await pullUpdates();
 
-                // If version mismatch but Git says no changes, that means the remote
-                // package.json was updated but not committed yet, or local is modified
-                // In this case, we should still force reset to remote
                 if (status === 'NO_CHANGES') {
                     console.log(`  ${BRAND.warning('!')} Git reported no changes, but version mismatch detected.`);
-                    console.log(`  ${BRAND.muted('info')} Force resetting to remote state...`);
+                    console.log(`  ${BRAND.warning('!')} Force resetting to remote state...`);
 
                     // Force reset anyway since we detected a version mismatch
                     try {
@@ -390,27 +387,27 @@ export class Orchestrator {
 
                         // Send update complete webhook
                         await this.webhook.send([{
-                            title: 'update complete',
+                            title: 'Update complete',
                             description: 'Force reset to remote due to version mismatch',
                             color: EmbedColors.SUCCESS,
                             fields: [
                                 {
-                                    name: 'version',
+                                    name: 'Version',
                                     value: `\`${currentVersion}\` → \`${remoteVersion}\``,
                                     inline: true
                                 },
                                 {
-                                    name: 'commit',
+                                    name: 'Commit',
                                     value: `[\`${newCommitHash}\`](https://github.com/zbzyy/discord-selfbot-v2/commit/${newFullHash})`,
                                     inline: true
                                 },
                                 {
-                                    name: 'note',
+                                    name: 'Note',
                                     value: 'Git reported no new commits, but package.json version changed. Local files were reset to match remote.',
                                     inline: false
                                 },
                                 {
-                                    name: 'status',
+                                    name: 'Status',
                                     value: 'restarting application...',
                                     inline: false
                                 }
@@ -438,35 +435,30 @@ export class Orchestrator {
 
                     // Send consolidated webhook with all update information
                     await this.webhook.send([{
-                        title: 'update complete',
+                        title: 'Update complete',
                         description: 'Successfully updated to the latest version',
                         color: EmbedColors.SUCCESS,
                         fields: [
                             {
-                                name: 'version',
+                                name: 'Version',
                                 value: `\`${currentVersion}\` → \`${remoteVersion}\``,
                                 inline: true
                             },
                             {
-                                name: 'files changed',
+                                name: 'Files changed',
                                 value: `\`${diffStats.filesChanged}\` files`,
                                 inline: true
                             },
                             {
-                                name: 'commits',
+                                name: 'Commits',
                                 value: `[\`${oldCommitHash}\`](https://github.com/zbzyy/discord-selfbot-v2/commit/${oldFullHash}) → [\`${newCommitHash}\`](https://github.com/zbzyy/discord-selfbot-v2/commit/${newFullHash})`,
                                 inline: false
                             },
                             {
-                                name: 'changed files',
+                                name: 'Changed files',
                                 value: diffStats.files.length > 0
                                     ? '```\n' + diffStats.files.slice(0, 10).join('\n') + (diffStats.files.length > 10 ? `\n... and ${diffStats.files.length - 10} more` : '') + '\n```'
                                     : 'No files listed',
-                                inline: false
-                            },
-                            {
-                                name: 'status',
-                                value: 'restarting application...',
                                 inline: false
                             }
                         ],
