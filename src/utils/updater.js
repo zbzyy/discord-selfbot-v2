@@ -41,6 +41,9 @@ export async function getFullCommitHash() {
  */
 export async function getGitDiffStats() {
     try {
+        // Fetch first to ensure we have the latest remote state
+        await execAsync('git fetch origin master');
+
         const { stdout: diffStats } = await execAsync('git diff --stat HEAD origin/master');
         const { stdout: diffFiles } = await execAsync('git diff --name-only HEAD origin/master');
 
@@ -106,16 +109,17 @@ export function restartProcess() {
     import('child_process').then(({ spawn }) => {
         const child = spawn(process.execPath, args, {
             detached: true,
-            stdio: 'inherit'
+            stdio: 'ignore', // Changed from 'inherit' to 'ignore' to fully detach
+            shell: false
         });
 
         // Detach the child process so it continues after parent exits
         child.unref();
 
-        // Exit the current process after a short delay
+        // Give the child process more time to start before we exit
         setTimeout(() => {
             process.exit(0);
-        }, 100);
+        }, 500);
     }).catch(err => {
         console.error('[Updater] Failed to restart:', err);
         process.exit(1);
