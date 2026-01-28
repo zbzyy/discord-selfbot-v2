@@ -68,22 +68,22 @@ export async function pullUpdates() {
         // Fetch the latest changes first
         await execAsync('git fetch origin master');
 
-        // Check if there are any differences between local and remote
-        const { stdout: diffCheck } = await execAsync('git diff HEAD origin/master --quiet || echo "different"');
+        // Get the current commit hash before resetting
+        const { stdout: currentCommit } = await execAsync('git rev-parse HEAD');
+        const beforeCommit = currentCommit.trim();
 
-        if (!diffCheck.includes('different')) {
-            // Check commit count difference
-            const { stdout: behindCount } = await execAsync('git rev-list HEAD..origin/master --count');
-            const { stdout: aheadCount } = await execAsync('git rev-list origin/master..HEAD --count');
-
-            if (behindCount.trim() === '0' && aheadCount.trim() === '0') {
-                return 'NO_CHANGES';
-            }
-        }
-
-        // Reset local changes and force pull from remote
-        // This handles diverged branches by discarding local commits
+        // Always reset to remote, discarding any local changes or commits
+        // This ensures we always match the remote exactly
         await execAsync('git reset --hard origin/master');
+
+        // Get the commit hash after resetting
+        const { stdout: newCommit } = await execAsync('git rev-parse HEAD');
+        const afterCommit = newCommit.trim();
+
+        // If commits are the same, nothing changed
+        if (beforeCommit === afterCommit) {
+            return 'NO_CHANGES';
+        }
 
         return 'UPDATED';
     } catch (error) {
