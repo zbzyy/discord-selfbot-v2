@@ -43,9 +43,7 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json');
 
-
-
-import { pullUpdates, restartProcess, getCommitHash } from './utils/updater.js';
+import { pullUpdates, restartProcess, getCommitHash, getFullCommitHash, getGitDiffStats } from './utils/updater.js';
 import { EmbedColors } from './services/webhook.js';
 
 /**
@@ -337,30 +335,129 @@ export class Orchestrator {
                 console.log(`  ${BRAND.accent('!')}  Current: ${BRAND.dim(currentVersion)}  ${BRAND.muted('→')}  Latest: ${BRAND.success(remoteVersion)}`);
                 console.log('');
 
-                // Send webhook notification
-                await this.webhook.notifyUpdate(currentVersion, remoteVersion).catch(() => { });
+                // Get current commit hash and diff stats before updating
+                const oldCommitHash = await getCommitHash();
+                const oldFullHash = await getFullCommitHash();
 
-                // Perform Auto-Update
+                // Get diff stats before pulling
+                const diffStats = await getGitDiffStats();
+
                 console.log(BRAND.dim('  ' + '─'.repeat(4) + ' ') + BRAND.accent.bold('Auto-Updating...') + BRAND.dim(' ' + '─'.repeat(40)));
-                await this.webhook.notifyStatus('Update Started', 'Pulling latest changes from repository...', EmbedColors.INFO).catch(() => { });
 
+                // Perform the update
                 const status = await pullUpdates();
 
                 if (status === 'UPDATED') {
+                    // Get new commit hash after update
+                    const newCommitHash = await getCommitHash();
+                    const newFullHash = await getFullCommitHash();
+
                     console.log(`  ${BRAND.success('✓')} Update successful. Restarting...`);
-                    await this.webhook.notifyStatus('Update Complete', 'Update successful! Restarting application...', EmbedColors.SUCCESS).catch(() => { });
+
+                    // Send consolidated webhook with all update information
+                    await this.webhook.sendRaw({
+                        username: 'Updater',
+                        embeds: [{
+                            title: '🔄 Update Complete',
+                            description: 'Successfully updated to the latest version',
+                            color: EmbedColors.SUCCESS,
+                            fields: [
+                                {
+                                    name: '📦 Version',
+                                    value: `\`${currentVersion}\` → \`${remoteVersion}\``,
+                                    inline: true
+                                },
+                                {
+                                    name: '📝 Files Changed',
+                                    value: `\`${diffStats.filesChanged}\` files`,
+                                    inline: true
+                                },
+                                {
+                                    name: '🔀 Commits',
+                                    value: `[\`${oldCommitHash}\`](https://github.com/zbzyy/discord-selfbot-v2/commit/${oldFullHash}) → [\`${newCommitHash}\`](https://github.com/zbzyy/discord-selfbot-v2/commit/${newFullHash})`,
+                                    inline: false
+                                },
+                                {
+                                    name: '📄 Changed Files',
+                                    value: diffStats.files.length > 0
+                                        ? '```\n' + diffStats.files.slice(0, 10).join('\n') + (diffStats.files.length > 10 ? `\n... and ${diffStats.files.length - 10} more` : '') + '\n```'
+                                        : 'No files listed',
+                                    inline: false
+                                },
+                                {
+                                    name: '🔄 Status',
+                                    value: '✅ Restarting application...',
+                                    inline: false
+                                }
+                            ],
+                            timestamp: new Date().toISOString()
+                        }]
+                    }).catch(() => { });
 
                     // Allow time for webhook to send
                     await new Promise(resolve => setTimeout(resolve, 2000));
+
+                    // Restart the process
                     restartProcess();
                 } else if (status === 'NO_CHANGES') {
                     console.log(`  ${BRAND.warning('!')} Git reported no changes (Already up to date).`);
                     console.log(`  ${BRAND.muted('info')} Your local version might be manually modified.`);
-                    await this.webhook.notifyStatus('Update Skipped', 'Git reported no changes. Continuing startup with current version.', EmbedColors.WARNING).catch(() => { });
-                    // Do not restart, continue startup
+
+                    await this.webhook.sendRaw({
+                        username: 'Updater',
+                        embeds: [{
+                            title: '⚠️ Update Skipped',
+                            description: 'Git reported no changes. Version mismatch may be due to local modifications.',
+                            color: EmbedColors.WARNING,
+                            fields: [
+                                {
+                                    name: '📦 Version',
+                                    value: `Local: \`${currentVersion}\`\nRemote: \`${remoteVersion}\``,
+                                    inline: true
+                                },
+                                {
+                                    name: '🔀 Commit',
+                                    value: `[\`${await getCommitHash()}\`](https://github.com/zbzyy/discord-selfbot-v2/commit/${await getFullCommitHash()})`,
+                                    inline: true
+                                },
+                                {
+                                    name: '📝 Status',
+                                    value: 'Continuing with current version',
+                                    inline: false
+                                }
+                            ],
+                            timestamp: new Date().toISOString()
+                        }]
+                    }).catch(() => { });
                 } else {
                     console.log(`  ${BRAND.error('✗')} Update failed.`);
-                    await this.webhook.notifyStatus('Update Failed', 'Failed to pull updates. Please check console or update manually.', EmbedColors.ERROR).catch(() => { });
+
+                    await this.webhook.sendRaw({
+                        username: 'Updater',
+                        embeds: [{
+                            title: '❌ Update Failed',
+                            description: 'Failed to pull updates from repository',
+                            color: EmbedColors.ERROR,
+                            fields: [
+                                {
+                                    name: '📦 Version',
+                                    value: `Current: \`${currentVersion}\`\nTarget: \`${remoteVersion}\``,
+                                    inline: true
+                                },
+                                {
+                                    name: '🔀 Commit',
+                                    value: `[\`${await getCommitHash()}\`](https://github.com/zbzyy/discord-selfbot-v2/commit/${await getFullCommitHash()})`,
+                                    inline: true
+                                },
+                                {
+                                    name: '⚠️ Action Required',
+                                    value: 'Please check console logs or update manually',
+                                    inline: false
+                                }
+                            ],
+                            timestamp: new Date().toISOString()
+                        }]
+                    }).catch(() => { });
                 }
             }
         } catch (error) {
