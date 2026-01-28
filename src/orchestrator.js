@@ -405,11 +405,6 @@ export class Orchestrator {
                                     name: 'Note',
                                     value: 'Git reported no new commits, but package.json version changed. Local files were reset to match remote.',
                                     inline: false
-                                },
-                                {
-                                    name: 'Status',
-                                    value: 'restarting application...',
-                                    inline: false
                                 }
                             ],
                             timestamp: new Date().toISOString()

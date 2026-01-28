@@ -147,8 +147,6 @@ const require = createRequire(import.meta.url);
  * Uses process.execPath to restart with the same Node version.
  */
 export function restartProcess() {
-    console.log('[Updater] Restarting process...');
-
     try {
         const { spawn } = require('child_process');
         const args = process.argv.slice(1);
@@ -158,8 +156,6 @@ export function restartProcess() {
             stdio: 'inherit',
             cwd: process.cwd()
         });
-
-        console.log('[Updater] New process started...');
 
         // Wait for child to exit, then exit this process with same code
         child.on('close', (code) => {
