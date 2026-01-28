@@ -326,7 +326,7 @@ export class Orchestrator {
 
                 console.log('');
                 console.log(BRAND.dim('  ' + '─'.repeat(4) + ' ') + BRAND.accent.bold('Update Available') + BRAND.dim(' ' + '─'.repeat(38)));
-                console.log(`  ${BRAND.accent('!')}  Changes detected via Git. Updating...`);
+                console.log(`  ${BRAND.accent('!')}  Changes detected. Updating...`);
                 console.log('');
 
                 // Get current commit hash and diff stats before updating
