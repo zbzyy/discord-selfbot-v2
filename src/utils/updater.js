@@ -71,22 +71,29 @@ export async function pullUpdates() {
         // Fetch the latest changes first
         await execAsync('git fetch origin master');
 
+        // Check if local files differ from remote
+        // This checks actual file content, not just commits
+        const { stdout: statusOutput } = await execAsync('git status -uno');
+        const { stdout: diffOutput } = await execAsync('git diff HEAD origin/master --name-only');
+
         // Get the current commit hash before resetting
         const { stdout: currentCommit } = await execAsync('git rev-parse HEAD');
         const beforeCommit = currentCommit.trim();
 
-        // Always reset to remote, discarding any local changes or commits
-        // This ensures we always match the remote exactly
-        await execAsync('git reset --hard origin/master');
+        // Get remote commit hash
+        const { stdout: remoteCommit } = await execAsync('git rev-parse origin/master');
+        const afterCommit = remoteCommit.trim();
 
-        // Get the commit hash after resetting
-        const { stdout: newCommit } = await execAsync('git rev-parse HEAD');
-        const afterCommit = newCommit.trim();
-
-        // If commits are the same, nothing changed
-        if (beforeCommit === afterCommit) {
+        // If commits are the same AND no file differences, nothing to update
+        if (beforeCommit === afterCommit && !diffOutput.trim()) {
             return 'NO_CHANGES';
         }
+
+        // Reset to remote, discarding any local changes or commits
+        await execAsync('git reset --hard origin/master');
+
+        // Also clean any untracked files
+        await execAsync('git clean -fd');
 
         return 'UPDATED';
     } catch (error) {

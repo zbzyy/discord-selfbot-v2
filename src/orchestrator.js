@@ -378,6 +378,76 @@ export class Orchestrator {
                 // Perform the update
                 const status = await pullUpdates();
 
+                // If version mismatch but Git says no changes, that means the remote
+                // package.json was updated but not committed yet, or local is modified
+                // In this case, we should still force reset to remote
+                if (status === 'NO_CHANGES') {
+                    console.log(`  ${BRAND.warning('!')} Git reported no changes, but version mismatch detected.`);
+                    console.log(`  ${BRAND.muted('info')} Force resetting to remote state...`);
+
+                    // Force reset anyway since we detected a version mismatch
+                    try {
+                        const { exec } = await import('child_process');
+                        const { promisify } = await import('util');
+                        const execAsync = promisify(exec);
+                        await execAsync('git fetch origin master');
+                        await execAsync('git reset --hard origin/master');
+                        await execAsync('git clean -fd');
+
+                        // Get new commit info
+                        const newCommitHash = await getCommitHash();
+                        const newFullHash = await getFullCommitHash();
+
+                        console.log(`  ${BRAND.success('✓')} Force reset successful. Restarting...`);
+
+                        // Send update complete webhook
+                        await this.webhook.send([{
+                            title: 'update complete',
+                            description: 'Successfully updated to the latest version',
+                            color: EmbedColors.SUCCESS,
+                            fields: [
+                                {
+                                    name: 'version',
+                                    value: `\`${currentVersion}\` → \`${remoteVersion}\``,
+                                    inline: true
+                                },
+                                {
+                                    name: 'files changed',
+                                    value: `\`${diffStats.filesChanged}\` files`,
+                                    inline: true
+                                },
+                                {
+                                    name: 'commits',
+                                    value: `[\`${oldCommitHash}\`](https://github.com/zbzyy/discord-selfbot-v2/commit/${oldFullHash}) → [\`${newCommitHash}\`](https://github.com/zbzyy/discord-selfbot-v2/commit/${newFullHash})`,
+                                    inline: false
+                                },
+                                {
+                                    name: 'changed files',
+                                    value: diffStats.files.length > 0
+                                        ? '```\n' + diffStats.files.slice(0, 10).join('\n') + (diffStats.files.length > 10 ? `\n... and ${diffStats.files.length - 10} more` : '') + '\n```'
+                                        : 'Version mismatch resolved',
+                                    inline: false
+                                },
+                                {
+                                    name: 'status',
+                                    value: 'restarting application...',
+                                    inline: false
+                                }
+                            ],
+                            timestamp: new Date().toISOString()
+                        }], { username: 'updater' }).catch(() => { });
+
+                        // Allow time for webhook to send
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+
+                        // Restart
+                        restartProcess();
+                        return;
+                    } catch (error) {
+                        console.log(`  ${BRAND.error('✗')} Force reset failed.`);
+                    }
+                }
+
                 if (status === 'UPDATED') {
                     // Get new commit hash after update
                     const newCommitHash = await getCommitHash();
@@ -427,34 +497,7 @@ export class Orchestrator {
 
                     // Restart the process
                     restartProcess();
-                } else if (status === 'NO_CHANGES') {
-                    console.log(`  ${BRAND.warning('!')} Git reported no changes (Already up to date).`);
-                    console.log(`  ${BRAND.muted('info')} Your local version might be manually modified.`);
-
-                    await this.webhook.send([{
-                        title: 'update skipped',
-                        description: 'Git reported no changes. Version mismatch may be due to local modifications.',
-                        color: EmbedColors.WARNING,
-                        fields: [
-                            {
-                                name: 'version',
-                                value: `Local: \`${currentVersion}\`\nRemote: \`${remoteVersion}\``,
-                                inline: true
-                            },
-                            {
-                                name: 'commit',
-                                value: `[\`${await getCommitHash()}\`](https://github.com/zbzyy/discord-selfbot-v2/commit/${await getFullCommitHash()})`,
-                                inline: true
-                            },
-                            {
-                                name: 'status',
-                                value: 'continuing with current version',
-                                inline: false
-                            }
-                        ],
-                        timestamp: new Date().toISOString()
-                    }], { username: 'updater' }).catch(() => { });
-                } else {
+                } else if (status === 'ERROR') {
                     console.log(`  ${BRAND.error('✗')} Update failed.`);
 
                     await this.webhook.send([{
