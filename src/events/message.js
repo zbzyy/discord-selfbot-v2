@@ -103,7 +103,6 @@ export function createMessageEventHandlers(selfBotClient) {
         // Check if edit logging is enabled
         if (!config.logEdited) return;
 
-        // Skip if no author or content unchanged
         if (!oldMessage.author) return;
         if (oldMessage.content === newMessage.content) return;
         if (!oldMessage.content) return;
