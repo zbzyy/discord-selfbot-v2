@@ -109,34 +109,38 @@ export async function pullUpdates() {
 export function restartProcess() {
     console.log('[Updater] Restarting process...');
 
-    // For Windows, we need a different approach
-    // We'll use a batch script to kill and restart
+    // Get the original command line arguments
+    const args = process.argv.slice(1);
+
     if (process.platform === 'win32') {
-        // Get the original command line arguments
-        const args = process.argv.slice(1);
-        const command = `"${process.execPath}" ${args.map(arg => `"${arg}"`).join(' ')}`;
+        // Windows: Create a temporary batch file to restart
+        import('fs').then(fs => {
+            import('path').then(path => {
+                const batchContent = `@echo off
+timeout /t 2 /nobreak >nul
+cd /d "${process.cwd()}"
+"${process.execPath}" ${args.map(arg => `"${arg}"`).join(' ')}
+`;
+                const batchPath = path.join(process.cwd(), 'restart.bat');
+                fs.writeFileSync(batchPath, batchContent);
 
-        // Use dynamic import
-        import('child_process').then(({ exec }) => {
-            // Schedule restart after current process exits
-            exec(`timeout /t 1 /nobreak > nul && ${command}`, {
-                detached: true,
-                stdio: 'ignore',
-                shell: true
+                import('child_process').then(({ exec }) => {
+                    exec(`start /min cmd /c "${batchPath}"`, {
+                        windowsHide: true
+                    });
+
+                    // Exit immediately
+                    setTimeout(() => {
+                        process.exit(0);
+                    }, 100);
+                });
             });
-
-            // Exit immediately
-            setTimeout(() => {
-                process.exit(0);
-            }, 100);
         }).catch(err => {
             console.error('[Updater] Failed to restart:', err);
             process.exit(1);
         });
     } else {
-        // Unix/Linux approach (original)
-        const args = process.argv.slice(1);
-
+        // Unix/Linux
         import('child_process').then(({ spawn }) => {
             const child = spawn(process.execPath, args, {
                 detached: true,
