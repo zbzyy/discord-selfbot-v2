@@ -99,14 +99,14 @@ export async function pullUpdates() {
  * Restarts the current Node.js process.
  * Uses process.execPath to restart with the same Node version.
  */
-export function restartProcess() {
+export async function restartProcess() {
     console.log('[Updater] Restarting process...');
 
     // Get the original command line arguments
     const args = process.argv.slice(1);
 
-    // Spawn a new process with the same arguments
-    const { spawn } = require('child_process');
+    // Dynamically import child_process for ES modules
+    const { spawn } = await import('child_process');
     const child = spawn(process.execPath, args, {
         detached: true,
         stdio: 'inherit'

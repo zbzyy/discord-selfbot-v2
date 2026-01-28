@@ -342,6 +342,31 @@ export class Orchestrator {
                 // Get diff stats before pulling
                 const diffStats = await getGitDiffStats();
 
+                // Send update found notification
+                await this.webhook.send([{
+                    title: 'update available',
+                    description: 'A new version has been detected',
+                    color: EmbedColors.INFO,
+                    fields: [
+                        {
+                            name: 'current version',
+                            value: `\`${currentVersion}\``,
+                            inline: true
+                        },
+                        {
+                            name: 'new version',
+                            value: `\`${remoteVersion}\``,
+                            inline: true
+                        },
+                        {
+                            name: 'current commit',
+                            value: `[\`${oldCommitHash}\`](https://github.com/zbzyy/discord-selfbot-v2/commit/${oldFullHash})`,
+                            inline: false
+                        }
+                    ],
+                    timestamp: new Date().toISOString()
+                }], { username: 'updater' }).catch(() => { });
+
                 console.log(BRAND.dim('  ' + '─'.repeat(4) + ' ') + BRAND.accent.bold('Auto-Updating...') + BRAND.dim(' ' + '─'.repeat(40)));
 
                 // Perform the update
@@ -356,99 +381,99 @@ export class Orchestrator {
 
                     // Send consolidated webhook with all update information
                     await this.webhook.send([{
-                        title: '🔄 Update Complete',
+                        title: 'update complete',
                         description: 'Successfully updated to the latest version',
                         color: EmbedColors.SUCCESS,
                         fields: [
                             {
-                                name: '📦 Version',
+                                name: 'version',
                                 value: `\`${currentVersion}\` → \`${remoteVersion}\``,
                                 inline: true
                             },
                             {
-                                name: '📝 Files Changed',
+                                name: 'files changed',
                                 value: `\`${diffStats.filesChanged}\` files`,
                                 inline: true
                             },
                             {
-                                name: '🔀 Commits',
+                                name: 'commits',
                                 value: `[\`${oldCommitHash}\`](https://github.com/zbzyy/discord-selfbot-v2/commit/${oldFullHash}) → [\`${newCommitHash}\`](https://github.com/zbzyy/discord-selfbot-v2/commit/${newFullHash})`,
                                 inline: false
                             },
                             {
-                                name: '📄 Changed Files',
+                                name: 'changed files',
                                 value: diffStats.files.length > 0
                                     ? '```\n' + diffStats.files.slice(0, 10).join('\n') + (diffStats.files.length > 10 ? `\n... and ${diffStats.files.length - 10} more` : '') + '\n```'
                                     : 'No files listed',
                                 inline: false
                             },
                             {
-                                name: '🔄 Status',
-                                value: '✅ Restarting application...',
+                                name: 'status',
+                                value: 'restarting application...',
                                 inline: false
                             }
                         ],
                         timestamp: new Date().toISOString()
-                    }], { username: 'Updater' }).catch(() => { });
+                    }], { username: 'updater' }).catch(() => { });
 
                     // Allow time for webhook to send
                     await new Promise(resolve => setTimeout(resolve, 2000));
 
                     // Restart the process
-                    restartProcess();
+                    await restartProcess();
                 } else if (status === 'NO_CHANGES') {
                     console.log(`  ${BRAND.warning('!')} Git reported no changes (Already up to date).`);
                     console.log(`  ${BRAND.muted('info')} Your local version might be manually modified.`);
 
                     await this.webhook.send([{
-                        title: '⚠️ Update Skipped',
+                        title: 'update skipped',
                         description: 'Git reported no changes. Version mismatch may be due to local modifications.',
                         color: EmbedColors.WARNING,
                         fields: [
                             {
-                                name: '📦 Version',
+                                name: 'version',
                                 value: `Local: \`${currentVersion}\`\nRemote: \`${remoteVersion}\``,
                                 inline: true
                             },
                             {
-                                name: '🔀 Commit',
+                                name: 'commit',
                                 value: `[\`${await getCommitHash()}\`](https://github.com/zbzyy/discord-selfbot-v2/commit/${await getFullCommitHash()})`,
                                 inline: true
                             },
                             {
-                                name: '📝 Status',
-                                value: 'Continuing with current version',
+                                name: 'status',
+                                value: 'continuing with current version',
                                 inline: false
                             }
                         ],
                         timestamp: new Date().toISOString()
-                    }], { username: 'Updater' }).catch(() => { });
+                    }], { username: 'updater' }).catch(() => { });
                 } else {
                     console.log(`  ${BRAND.error('✗')} Update failed.`);
 
                     await this.webhook.send([{
-                        title: '❌ Update Failed',
+                        title: 'update failed',
                         description: 'Failed to pull updates from repository',
                         color: EmbedColors.ERROR,
                         fields: [
                             {
-                                name: '📦 Version',
+                                name: 'version',
                                 value: `Current: \`${currentVersion}\`\nTarget: \`${remoteVersion}\``,
                                 inline: true
                             },
                             {
-                                name: '🔀 Commit',
+                                name: 'commit',
                                 value: `[\`${await getCommitHash()}\`](https://github.com/zbzyy/discord-selfbot-v2/commit/${await getFullCommitHash()})`,
                                 inline: true
                             },
                             {
-                                name: '⚠️ Action Required',
+                                name: 'action required',
                                 value: 'Please check console logs or update manually',
                                 inline: false
                             }
                         ],
                         timestamp: new Date().toISOString()
-                    }], { username: 'Updater' }).catch(() => { });
+                    }], { username: 'updater' }).catch(() => { });
                 }
             }
         } catch (error) {
