@@ -267,7 +267,6 @@ export class DiscordService {
     }
 }
 
-// Singleton instance
 let discordServiceInstance = null;
 
 /**
