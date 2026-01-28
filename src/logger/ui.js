@@ -8,14 +8,14 @@ import chalk from 'chalk';
 
 /** Brand colors */
 const BRAND = {
-    primary: chalk.hex('#7C3AED'),    // Purple
-    secondary: chalk.hex('#06B6D4'),  // Cyan
-    accent: chalk.hex('#F59E0B'),     // Amber
-    success: chalk.hex('#10B981'),    // Emerald
-    error: chalk.hex('#EF4444'),      // Red
-    warning: chalk.hex('#F59E0B'),    // Amber
-    muted: chalk.hex('#6B7280'),      // Gray
-    dim: chalk.hex('#4B5563'),        // Dark gray
+    primary: chalk.hex('#7C3AED'),    
+    secondary: chalk.hex('#06B6D4'),  
+    accent: chalk.hex('#F59E0B'),     
+    success: chalk.hex('#10B981'),    
+    error: chalk.hex('#EF4444'),     
+    warning: chalk.hex('#F59E0B'),    
+    muted: chalk.hex('#6B7280'),      
+    dim: chalk.hex('#4B5563'),       
 };
 
 /** Box drawing characters */
