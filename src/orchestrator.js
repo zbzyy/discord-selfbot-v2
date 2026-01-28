@@ -44,7 +44,7 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json');
 
-import { pullUpdates, restartProcess, getCommitHash, getFullCommitHash, getGitDiffStats } from './utils/updater.js';
+import { pullUpdates, restartProcess, getCommitHash, getFullCommitHash, getGitDiffStats, checkForUpdates, getRemoteVersion } from './utils/updater.js';
 import { EmbedColors } from './services/webhook.js';
 
 /**
@@ -318,28 +318,15 @@ export class Orchestrator {
      */
     async _checkUpdate() {
         try {
-            const response = await fetch('https://raw.githubusercontent.com/zbzyy/discord-selfbot-v2/master/package.json', {
-                headers: {
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache'
-                },
-                cache: 'no-store'
-            });
-            if (!response.ok) {
-                console.log(`[DEBUG] Update Check Failed: ${response.status} ${response.statusText}`);
-                return;
-            }
-
-            const remotePkg = await response.json();
+            const hasUpdate = await checkForUpdates();
             const currentVersion = pkg.version;
-            const remoteVersion = remotePkg.version;
 
-            console.log(`[DEBUG] Update Check: Local=${currentVersion}, Remote=${remoteVersion}`);
+            if (hasUpdate) {
+                const remoteVersion = await getRemoteVersion();
 
-            if (isNewerVersion(remoteVersion, currentVersion)) {
                 console.log('');
                 console.log(BRAND.dim('  ' + '─'.repeat(4) + ' ') + BRAND.accent.bold('Update Available') + BRAND.dim(' ' + '─'.repeat(38)));
-                console.log(`  ${BRAND.accent('!')}  Current: ${BRAND.dim(currentVersion)}  ${BRAND.muted('→')}  Latest: ${BRAND.success(remoteVersion)}`);
+                console.log(`  ${BRAND.accent('!')}  Changes detected via Git. Updating...`);
                 console.log('');
 
                 // Get current commit hash and diff stats before updating

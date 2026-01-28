@@ -23,6 +23,20 @@ export async function getCommitHash() {
 }
 
 /**
+ * Gets the version from the remote package.json.
+ * @returns {Promise<string>} Remote version string or 'unknown'
+ */
+export async function getRemoteVersion() {
+    try {
+        const { stdout } = await execAsync('git show origin/master:package.json');
+        const pkg = JSON.parse(stdout);
+        return pkg.version;
+    } catch (error) {
+        return 'unknown';
+    }
+}
+
+/**
  * Gets the full Git commit hash.
  * @returns {Promise<string>} Full commit hash
  */
@@ -61,6 +75,29 @@ export async function getGitDiffStats() {
         };
     }
 }
+
+/**
+ * Checks if there are any updates available on the remote repository.
+ * Compares the local HEAD commit hash with the remote origin/master commit hash.
+ * @returns {Promise<boolean>} True if remote is different/newer, false otherwise.
+ */
+export async function checkForUpdates() {
+    try {
+        // Fetch the latest changes
+        await execAsync('git fetch origin master');
+
+        // Get local and remote hashes
+        const { stdout: localHash } = await execAsync('git rev-parse HEAD');
+        const { stdout: remoteHash } = await execAsync('git rev-parse origin/master');
+
+        // Compare hashes - if different, we have an update (or at least a mismatch we want to sync)
+        return localHash.trim() !== remoteHash.trim();
+    } catch (error) {
+        console.error('[Updater] Failed to check for updates:', error);
+        return false;
+    }
+}
+
 
 /**
  * Pulls the latest updates from the remote repository.
