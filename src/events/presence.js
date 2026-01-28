@@ -22,18 +22,14 @@ export function createPresenceEventHandlers(selfBotClient) {
      * @param {Presence} newPresence - New presence state
      */
     async function handlePresenceUpdate(oldPresence, newPresence) {
-        // Check if presence logging is enabled
         if (!config.logPresence) return;
 
-        // Presence tracking is minimized for privacy
-        // This is a placeholder for potential future implementation
         const user = newPresence?.user;
         if (!user) return;
 
         const oldStatus = oldPresence?.status || 'unknown';
         const newStatus = newPresence?.status || 'unknown';
 
-        // Only log significant changes
         if (oldStatus === newStatus) return;
 
         logger.debug(`${user.tag}: ${oldStatus} -> ${newStatus}`);
