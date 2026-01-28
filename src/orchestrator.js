@@ -25,7 +25,6 @@ import { delay } from './utils/delay.js';
 import { ensureDir } from './utils/file.js';
 import { isNewerVersion } from './utils/version.js';
 
-// Import all command handlers
 import {
     handleHelp,
     handleScraperDeep,
@@ -59,27 +58,22 @@ export class Orchestrator {
         this.isShuttingDown = false;
         this.isSelfBotLoggingIn = false;
 
-        // Track ready states
         this.selfBotReady = false;
         this.commandBotReady = false;
         this.hasShownReady = false;
 
-        // Initialize self-bot client
         this.selfBotClient = new SelfBotClient({
             checkUpdate: false,
         });
-
-        // Initialize command bot client with minimal intents
+        
         this.commandBotClient = new Client({
             intents: [GatewayIntentBits.Guilds],
         });
 
-        // Initialize services
         this.discordService = null;
         this.webhook = getWebhookService();
         this.commandRegistry = getCommandRegistry();
 
-        // Setup
         this._registerCommands();
         this._setupEventHandlers();
         this._setupProcessHandlers();
@@ -112,23 +106,18 @@ export class Orchestrator {
      * @private
      */
     _setupEventHandlers() {
-        // Self-bot events - use 'ready' for now (library still supports it)
         this.selfBotClient.on('ready', () => this._onSelfBotReady());
 
-        // Create message event handlers
         const messageHandlers = createMessageEventHandlers(this.selfBotClient);
         this.selfBotClient.on('messageCreate', messageHandlers.handleMessageCreate);
         this.selfBotClient.on('messageDelete', messageHandlers.handleMessageDelete);
         this.selfBotClient.on('messageUpdate', messageHandlers.handleMessageUpdate);
 
-        // Create presence event handlers
         const presenceHandlers = createPresenceEventHandlers(this.selfBotClient);
         this.selfBotClient.on('presenceUpdate', presenceHandlers.handlePresenceUpdate);
 
-        // Error handling
         this.selfBotClient.on('error', (error) => this._handleClientError(error, 'SELF-BOT'));
 
-        // Command bot events - use clientReady to avoid deprecation warning
         this.commandBotClient.once('ready', () => this._onCommandBotReady());
         this.commandBotClient.on('interactionCreate', (i) => this._handleInteraction(i));
         this.commandBotClient.on('error', (error) => this._handleClientError(error, 'COMMAND-BOT'));
@@ -139,11 +128,10 @@ export class Orchestrator {
      * @private
      */
     _setupProcessHandlers() {
-        // Suppress the specific deprecation warning
         const originalWarn = process.emitWarning;
         process.emitWarning = (warning, ...args) => {
             if (typeof warning === 'string' && warning.includes('ready event has been renamed')) {
-                return; // Suppress this specific warning
+                return; 
             }
             originalWarn.call(process, warning, ...args);
         };
@@ -172,7 +160,6 @@ export class Orchestrator {
     _handleClientError(error, source) {
         if (this.isShuttingDown) return;
 
-        // Check for recoverable self-bot errors
         if (source === 'SELF-BOT' &&
             (error.message?.includes('Invalid Session') || error.message?.includes('Not logged in'))) {
             this.logger.warn(`${source} session error detected, attempting re-login...`);
@@ -191,13 +178,10 @@ export class Orchestrator {
         const user = this.selfBotClient.user;
         this.selfBotReady = true;
 
-        // Initialize Discord service with both clients
         this.discordService = initDiscordService(this.selfBotClient, this.commandBotClient);
 
-        // Log session
         await this.logger.toFile('session.txt', `[LOGIN] ${user.tag} logged in successfully.`);
 
-        // Check if both are ready
         this._checkAllReady();
     }
 
@@ -227,19 +211,16 @@ export class Orchestrator {
             printInfo('Listening for keyword triggers and message events...');
             console.log('');
 
-            // Get git commit hash
             const commitHash = await getCommitHash();
 
             console.log(BRAND.dim(`  Commit: ${commitHash}`));
 
-            // Send webhook notification with both bot tags and hash
             await this.webhook.notifyOnline(
                 this.selfBotClient.user?.tag,
                 this.commandBotClient.user?.tag,
                 commitHash
             ).catch(() => { });
 
-            // Register slash commands last
             await this._registerSlashCommands();
         }
     }
@@ -370,7 +351,6 @@ export class Orchestrator {
                     console.log(`  ${BRAND.warning('!')} Git reported no changes, but version mismatch detected.`);
                     console.log(`  ${BRAND.warning('!')} Force resetting to remote state...`);
 
-                    // Force reset anyway since we detected a version mismatch
                     try {
                         const { exec } = await import('child_process');
                         const { promisify } = await import('util');
@@ -379,13 +359,11 @@ export class Orchestrator {
                         await execAsync('git reset --hard origin/master');
                         await execAsync('git clean -fd');
 
-                        // Get new commit info
                         const newCommitHash = await getCommitHash();
                         const newFullHash = await getFullCommitHash();
 
                         console.log(`  ${BRAND.success('✓')} Force reset successful. Restarting...`);
 
-                        // Send update complete webhook
                         await this.webhook.send([{
                             title: 'Update complete',
                             description: 'Force reset to remote due to version mismatch',
@@ -410,10 +388,8 @@ export class Orchestrator {
                             timestamp: new Date().toISOString()
                         }], { username: 'updater' }).catch(() => { });
 
-                        // Allow time for webhook to send
                         await new Promise(resolve => setTimeout(resolve, 2000));
 
-                        // Restart
                         restartProcess();
                         return true;
                     } catch (error) {
@@ -422,13 +398,11 @@ export class Orchestrator {
                 }
 
                 if (status === 'UPDATED') {
-                    // Get new commit hash after update
                     const newCommitHash = await getCommitHash();
                     const newFullHash = await getFullCommitHash();
 
                     console.log(`  ${BRAND.success('✓')} Update successful. Restarting...`);
 
-                    // Send consolidated webhook with all update information
                     await this.webhook.send([{
                         title: 'Update complete',
                         description: 'Successfully updated to the latest version',
@@ -460,10 +434,8 @@ export class Orchestrator {
                         timestamp: new Date().toISOString()
                     }], { username: 'updater' }).catch(() => { });
 
-                    // Allow time for webhook to send
                     await new Promise(resolve => setTimeout(resolve, 2000));
 
-                    // Restart the process
                     restartProcess();
                     return true;
                 } else if (status === 'ERROR') {
@@ -495,7 +467,6 @@ export class Orchestrator {
                 }
             }
         } catch (error) {
-            // Silently fail on network errors during update check
             this.logger.debug('Failed to check for updates', error);
             console.log('[DEBUG] Update check failed:', error);
         }
@@ -506,25 +477,19 @@ export class Orchestrator {
      * @returns {Promise<void>}
      */
     async start() {
-        // Check for updates
         if (await this._checkUpdate()) return;
 
-        // Print banner
         printBanner();
 
-        // Print startup section
         printSection('Initializing');
 
-        // Ensure directories exist
         await ensureDir(config.logDir);
         await ensureDir(config.downloadDir);
         printStatus('Directories', 'Ready', 'success');
 
-        // Print connecting section
         printSection('Connecting');
 
         try {
-            // Login both clients in parallel
             await Promise.all([
                 this._attemptLogin(this.selfBotClient, config.selfToken, 'Self-Bot'),
                 this._attemptLogin(this.commandBotClient, config.botToken, 'Command Bot'),
