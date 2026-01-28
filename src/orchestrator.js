@@ -403,7 +403,7 @@ export class Orchestrator {
                         // Send update complete webhook
                         await this.webhook.send([{
                             title: 'update complete',
-                            description: 'Successfully updated to the latest version',
+                            description: 'Force reset to remote due to version mismatch',
                             color: EmbedColors.SUCCESS,
                             fields: [
                                 {
@@ -412,20 +412,13 @@ export class Orchestrator {
                                     inline: true
                                 },
                                 {
-                                    name: 'files changed',
-                                    value: `\`${diffStats.filesChanged}\` files`,
+                                    name: 'commit',
+                                    value: `[\`${newCommitHash}\`](https://github.com/zbzyy/discord-selfbot-v2/commit/${newFullHash})`,
                                     inline: true
                                 },
                                 {
-                                    name: 'commits',
-                                    value: `[\`${oldCommitHash}\`](https://github.com/zbzyy/discord-selfbot-v2/commit/${oldFullHash}) → [\`${newCommitHash}\`](https://github.com/zbzyy/discord-selfbot-v2/commit/${newFullHash})`,
-                                    inline: false
-                                },
-                                {
-                                    name: 'changed files',
-                                    value: diffStats.files.length > 0
-                                        ? '```\n' + diffStats.files.slice(0, 10).join('\n') + (diffStats.files.length > 10 ? `\n... and ${diffStats.files.length - 10} more` : '') + '\n```'
-                                        : 'Version mismatch resolved',
+                                    name: 'note',
+                                    value: 'Git reported no new commits, but package.json version changed. Local files were reset to match remote.',
                                     inline: false
                                 },
                                 {

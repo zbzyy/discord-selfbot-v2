@@ -109,26 +109,49 @@ export async function pullUpdates() {
 export function restartProcess() {
     console.log('[Updater] Restarting process...');
 
-    // Get the original command line arguments
-    const args = process.argv.slice(1);
+    // For Windows, we need a different approach
+    // We'll use a batch script to kill and restart
+    if (process.platform === 'win32') {
+        // Get the original command line arguments
+        const args = process.argv.slice(1);
+        const command = `"${process.execPath}" ${args.map(arg => `"${arg}"`).join(' ')}`;
 
-    // Use dynamic import with then() instead of await
-    import('child_process').then(({ spawn }) => {
-        const child = spawn(process.execPath, args, {
-            detached: true,
-            stdio: 'ignore', // Changed from 'inherit' to 'ignore' to fully detach
-            shell: false
+        // Use dynamic import
+        import('child_process').then(({ exec }) => {
+            // Schedule restart after current process exits
+            exec(`timeout /t 1 /nobreak > nul && ${command}`, {
+                detached: true,
+                stdio: 'ignore',
+                shell: true
+            });
+
+            // Exit immediately
+            setTimeout(() => {
+                process.exit(0);
+            }, 100);
+        }).catch(err => {
+            console.error('[Updater] Failed to restart:', err);
+            process.exit(1);
         });
+    } else {
+        // Unix/Linux approach (original)
+        const args = process.argv.slice(1);
 
-        // Detach the child process so it continues after parent exits
-        child.unref();
+        import('child_process').then(({ spawn }) => {
+            const child = spawn(process.execPath, args, {
+                detached: true,
+                stdio: 'ignore',
+                shell: false
+            });
 
-        // Give the child process more time to start before we exit
-        setTimeout(() => {
-            process.exit(0);
-        }, 500);
-    }).catch(err => {
-        console.error('[Updater] Failed to restart:', err);
-        process.exit(1);
-    });
+            child.unref();
+
+            setTimeout(() => {
+                process.exit(0);
+            }, 500);
+        }).catch(err => {
+            console.error('[Updater] Failed to restart:', err);
+            process.exit(1);
+        });
+    }
 }
